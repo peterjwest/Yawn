@@ -5,19 +5,20 @@ class YawnNode {
 	var $children = array();
 	var $singular = false;
 	var $parsed = false;
-	var $tail = "";
+	var $tail = false;
 	var $lazy = true;
 
 	function __construct($html) {
 		$this->tail = $html; 
-		$match = $this->get("<([^\s<>]+)");
+		$match = $this->get("<([^\s</>]+)");
 		$this->name = $match[1];
 	}
 	
 	function unique($selector) { return strpos("#", $selector) !== false; }
+	function has($regex = "") { if (preg_match("~^\s*".$regex."~", $this->tail, $match)) return $match; }
 	
-	function get($regex) {
-		if (preg_match("~^\s*".$regex."~", $this->tail, $match)) {
+	function get($regex = "") {
+		if ($match = $this->has($regex)) {
 			$this->tail = substr($this->tail, strlen($match[0]));
 			return $match;
 		}
@@ -33,7 +34,7 @@ class YawnNode {
 	}
 	
 	function find($selectors) {
-		$this->attrs();
+		$this->parseStart();
 		$unique = $this->unique($selectors);
 		$found = array();
 		$remaining = $this->matches($selectors);
@@ -41,7 +42,8 @@ class YawnNode {
 			$found[] = $this;
 			if ($unique) return $found;
 		}
-		while ($child = $this->child()) {
+		if ($this->singular) return $found;
+		while ($this->children[] = $child = $this->parseChild()) {
 			if (strlen($remaining) > 0 && $nodes = $child->find($remaining)) {
 				if ($unique) return $nodes;
 				$found = array_merge($found, $nodes);
@@ -70,7 +72,7 @@ class YawnNode {
 	}
 	
 	function attr($name, $value = false) {
-		$this->attrs();
+		$this->parseStart();
 		if (count(func_get_args()) > 1) {
 			if ($value === false) unset($this->attr[$name]);
 			else $this->attr[$name] = $value;
@@ -79,9 +81,24 @@ class YawnNode {
 		return isset($this->attr[$name]) ? $this->attr[$name] : false;
 	}
 	
-	function parseAttrs() {
+	function parseChild() {
+		if ($this->get("</{$this->name}>")) { 
+			$this->parsed = true; 
+			return false;
+		}
+		if ($this->has("<([^\s<>]+)")) $node = new YawnNode($this->tail);
+		else if ($this->has("<!--")) $node = new YawnComment($this->tail);
+		else if ($this->has("<!\[CDATA\[")) $node = new YawnCdata($this->tail);
+		else $node = new YawnText($this->tail);
+		$this->children[] = $node;
+		$this->tail = false;
+		return $node;
+	}
+	
+	function parseStart() {
 		if ($this->attrs !== false) return;
-		while ($name = $this->get("\s+([^\s=<>]+)")) {
+		$this->attrs = array();
+		while ($name = $this->get("\s+([^\s=</>]+)")) {
 			if ($this->get("=")) 
 				($value = $this->get('"([^"]*)"')) || ($value = $this->get("'([^']*)'")) || ($value = $this->get("([^\s</>]*)"));
 			$this->attrs[] = array($name[1], isset($value[1]) ? $value[1] : true);
@@ -94,3 +111,7 @@ class YawnNode {
 		if ($this->get("<!--"))	if(!$this->getFirst("-->")) throw new Exception("HTML comment not closed");
 	}
 }
+
+class YawnComment extends YawnNode {}
+class YawnCdata extends YawnNode {}
+class YawnText extends YawnNode {}
