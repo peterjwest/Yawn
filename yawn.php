@@ -78,9 +78,10 @@ class YawnHtml extends YawnNode {
 
 	function find($selectors) {
 		$this->parseStart();
-		$unique = $this->unique($selectors);
 		$remaining = $this->matches($selectors);
 		$found = array();
+		if (strlen($remaining) > 0) $selectors = $remaining;
+		$unique = $this->unique($selectors);
 		if ($remaining === true) { 
 			if ($unique) return array($this); 
 			$found[] = $this;
@@ -88,12 +89,8 @@ class YawnHtml extends YawnNode {
 		if ($this->singular) return $found;
 		$this->child = 0;
 		while ($child = $this->child()) {
-			if (strlen($remaining) > 0 && $nodes = $child->find($remaining)) {
-				if ($unique) return $nodes;
-				$found = array_merge($found, $nodes);
-			}
-			// Not sure here!
-			else if ($nodes = $child->find($selectors)) {
+			//check strlen(true) === 0
+			if ($nodes = $child->find()) {
 				if ($unique) return $nodes;
 				$found = array_merge($found, $nodes);
 			}
@@ -102,7 +99,7 @@ class YawnHtml extends YawnNode {
 	}
 	
 	function matches($selectors) {
-		$selectors = preg_split("~\s+~", $selectors, 1);
+		$selectors = preg_split("~\s+~", trim($selectors), 1);
 		foreach (preg_split("~(?=[\.#@])~",$selectors[0]) as $selector) {
 			if (substr($selector,0,1) === "#")
 				if ($this->attr("id") !== substr($selector,1)) return false;
