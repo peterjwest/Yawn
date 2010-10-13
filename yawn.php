@@ -66,6 +66,7 @@ class YawnHtml extends YawnNode {
 		}
 		foreach($this->children as $child) { $content .= $child->render(); }
 		if ($this->parsed) $content .= '</'.$this->name.'>';
+		else if (!$this->tail) throw new Exception($this->name." element not closed");
 		return $content.$this->tail;
 	}
 	
@@ -80,17 +81,16 @@ class YawnHtml extends YawnNode {
 		$this->parseStart();
 		$remaining = $this->matches($selectors);
 		$found = array();
-		if (strlen($remaining) > 0) $selectors = $remaining;
+		if ($remaining) $selectors = $remaining;
 		$unique = $this->unique($selectors);
-		if ($remaining === true) { 
+		if ($remaining === '') {
 			if ($unique) return array($this); 
 			$found[] = $this;
 		}
 		if ($this->singular) return $found;
 		$this->child = 0;
 		while ($child = $this->child()) {
-			//check strlen(true) === 0
-			if ($nodes = $child->find()) {
+			if ($nodes = $child->find($selectors)) {
 				if ($unique) return $nodes;
 				$found = array_merge($found, $nodes);
 			}
@@ -110,7 +110,7 @@ class YawnHtml extends YawnNode {
 				if (!in_array(substr($selector,1), explode(" ", $elem->attr("stim:id"))))
 					return false;
 		}
-		return isset($selectors[1]) ? $selectors[1] : true;
+		return isset($selectors[1]) ? $selectors[1] : '';
 	}
 	
 	function attr($name, $value = false) {
