@@ -133,8 +133,6 @@ class Yawn extends YawnNode {
 		else if ($this->has("[^<]")) $node = new YawnText($options);
 		else return false;
 		$this->children[] = $node;
-		$this->tail = false;
-		var_dump($node);
 		return $node;
 	}
 	
@@ -156,9 +154,15 @@ class Yawn extends YawnNode {
 }
 
 class YawnComment extends YawnBlock { var $end = '-->'; }
-class YawnCdata extends YawnBlock { var $end = '\]\]>'; }
-class YawnText extends YawnBlock { function init($options) { $this->get("[^<]+"); } }
-
+class YawnCdata extends YawnBlock { var $end = ']]>'; }
+class YawnText extends YawnBlock { 
+	function init($options) { 
+		$match = $this->get("([^<]+)"); 
+		$this->content = $match[1];
+		$this->content = preg_replace("~\s*$~","",$this->content);
+		$this->parsed(); 
+	} 
+}
 /*
 $node = false;
 foreach($this->nodeTypes as $nodeType) {
@@ -166,11 +170,25 @@ foreach($this->nodeTypes as $nodeType) {
 }
 return $node;
 
-class YawnComment extends YawnBlock {
+class YawnBlock extends YawnNode {
 	function starts($options) {
 		$this->tail = $options['string'];
 		if ($match = $this->get($this->startMatch)) return new $this($options);
 	}
 	function init($options) { $this->content = $this->getUntil($this->end); $this->parsed(); }
 }
+class YawnComment extends YawnBlock { var $startMatch = '<!--'; $end = '-->'; }
+class YawnCdata extends YawnBlock { var $end = ']]>'; }
+class YawnText extends YawnBlock { 
+	function init($options) { 
+		$match = $this->get("([^<]+)"); 
+		$this->content = $match[1];
+		$this->content = preg_replace("~\s*$~","",$this->content);
+		$this->parsed(); 
+	} 
+}
+		if ($this->has("<([^\s<>!]+)")) $node = new Yawn($options);
+		else if ($this->has("<!--")) $node = new YawnComment($options);
+		else if ($this->has("<!\[CDATA\[")) $node = new YawnCdata($options);
+		else if ($this->has("[^<]")) $node = new YawnText($options);
 */
