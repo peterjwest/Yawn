@@ -1,10 +1,11 @@
 <?php
-class YawnNode {
+abstract class YawnNode {
 	var $defaults = array('string' => false, 'file' => false, 'parent' => false);
 	var $parent = false, $parsed = false, $tail = false, $lazy = true;
 	function has($regex = "") { if (preg_match("~^\s*".$regex."~", $this->tail, $match)) return $match; }
 	function passTail($node) { $node->tail = $this->tail; $this->tail = false; }
 	function parsed() { if ($this->parent) $this->passTail($this->parent); $this->parsed = true; }
+	function dump() { return get_class($this); }
 	
 	function __construct($options) {
 		$options = array_merge($this->defaults, $options);
@@ -31,7 +32,7 @@ class YawnNode {
 	}
 }
 
-class YawnBlock extends YawnNode {
+abstract class YawnBlock extends YawnNode {
 	var $content = '', $end = '';
 	function init($options) { $this->content = $this->getUntil($this->end); $this->parsed(); }
 	function render() { return '<!--'.$this->content.'-->'; }
@@ -41,10 +42,9 @@ class YawnHtml extends YawnNode {
 	var $defaults = array('string' => '', 'file' => false, 'parent' => false, 'name' => '');
 	var $name = '', $attrs = false, $children = array(), $child = 0, $singular = false;
 	function unique($selector) { return strpos($selector, "#") !== false; }
+	function dump() { return $this->name."(".implode(", ", array_map(function($i) { return $i->dump(); }, $this->children)).($this->tail ? '"'.trim(preg_replace("~\s+~", " ", $this->tail)).'"' : null).")"; }
 	
-	function render() { 
-		unset($this->defaults);
-		unset($this->parent);
+	function render() {
 		$content = '<'.$this->name; 
 		if ($this->attrs !== false) { 
 			foreach($this->attrs as $name => $value) { $content .= ' '.$name.'="'.$value.'"'; }
