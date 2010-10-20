@@ -88,7 +88,7 @@ class Yawn extends YawnNode {
 		}
 		foreach($this->children as $child) { $content .= $child->render(); }
 		if ($this->parsed) $content .= '</'.$this->name.'>';
-		else if (!$this->tail) throw new Exception($this->name." element not closed");
+		else if ($this->tail === false) throw new Exception($this->name." element not closed");
 		return $content.$this->tail;
 	}
 
@@ -152,6 +152,7 @@ class Yawn extends YawnNode {
 			return false;
 		}
 		$options = array('string' => $this->tail, 'parent' => $this, 'types' => $this->types);
+		$this->tail = '';
 		$node = false;
 		foreach($this->types as $type)
 			if ($node = $type->starts($options)) return $this->children[] = $node;
