@@ -156,7 +156,7 @@ class Yawn extends YawnNode {
 		$node = false;
 		foreach($this->types as $type)
 			if ($node = $type->starts($options)) return $this->children[] = $node;
-		throw new Exception("Can't parse node from: '{$this->tail}'");
+		throw new Exception("Can't parse node from: `{$options['string']}`");
 	}
 	
 	function parseStart() {
@@ -181,7 +181,7 @@ class YawnText extends YawnNode {
 	function init($options) {}
 	function starts($options) {
 		$this->tail = $options['string']; 
-		if ($match = $this->get("(.+?)(?=\s*<[^\s])")) {
+		if ($match = $this->get("([\S\s]+?)(?=\s*<[^\s])")) {
 			$options['string'] = $this->tail;
 			$node = new $this($options);
 			$node->content = $match[1];
